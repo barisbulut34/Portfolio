@@ -1,0 +1,154 @@
+select * from hr_employee;
+-- 1) average age of low and medium job involvement
+select round(avg(age),2), JobInvolvement, attrition from hr_employee group by attrition, JobInvolvement order by attrition desc;
+
+-- 2) distribution of genders for among job involvement
+select gender, JobInvolvement, count(gender) from hr_employee group by JobInvolvement, gender order by gender desc;
+-- 3) number of low and mid job satisfaction by job role
+SELECT jobrole, 
+       SUM(CASE WHEN JobSatisfaction = 'Low' THEN 1 ELSE 0 END) AS low_satisfaction_count,
+       SUM(CASE WHEN JobSatisfaction = 'Mid' THEN 1 ELSE 0 END) AS mid_satisfaction_count,
+       SUM(CASE WHEN JobSatisfaction = 'Satisfied' THEN 1 ELSE 0 END) AS satisfied_satisfaction_count,
+       SUM(CASE WHEN JobSatisfaction = 'Highly-Satisfied' THEN 1 ELSE 0 END) AS highly_satisfaction_count
+FROM hr_employee
+GROUP BY jobrole
+order by highly_satisfaction_count desc;
+-- 4) average distance from home by attrition
+select attrition, avg(distancefromhome) as average_dist_from_home from hr_employee group by Attrition order by average_dist_from_home desc;
+
+-- 5) number of low and mid job satisfaction by work life balance
+select WorkLifeBalance, 
+   SUM(CASE WHEN JobSatisfaction = 'Low' THEN 1 ELSE 0 END) AS low_satisfaction_count,
+       SUM(CASE WHEN JobSatisfaction = 'Mid' THEN 1 ELSE 0 END) AS mid_satisfaction_count
+from hr_employee
+where	JobSatisfaction in ('low' , 'mid')
+group by WorkLifeBalance, JobSatisfaction
+order by low_satisfaction_count desc;
+-- 6) average years at current role and at company vs. attrition
+select round(avg(YearsAtCompany),2), round(avg(YearsInCurrentRole),2), attrition 
+from hr_employee
+group by Attrition;
+
+-- 7) average years at current role and at company vs. jobsatisfaction
+select round(avg(YearsAtCompany),2) as avg_years_atcompany , round(avg(YearsInCurrentRole),2) as avg_years_in_curr_role, JobSatisfaction 
+from hr_employee
+group by JobSatisfaction
+order by avg_years_in_curr_role
+
+-- 8) number of over time vs job satisfaction
+SELECT overtime,   jobsatisfaction,    COUNT(*) AS employee_count FROM  hr_employee
+GROUP BY    overtime,    jobsatisfaction
+ORDER BY overtime,
+    CASE
+        WHEN jobsatisfaction = 'highly-satisfied' THEN 1
+        WHEN jobsatisfaction = 'satisfied' THEN 2
+        WHEN jobsatisfaction = 'mid' THEN 3
+        WHEN jobsatisfaction = 'low' THEN 4
+        ELSE 5  -- Handle any other values
+    END;
+
+-- 9) Average salary hike by performance rating
+select avg(percentsalaryhike) as avg_salary_hike, PerformanceRating from hr_employee
+group by performancerating
+order by avg_salary_hike;
+
+-- 10) Average salary hike by attrition
+select avg(percentsalaryhike) as avg_salary_hike, attrition from hr_employee
+group by attrition
+order by avg_salary_hike;
+-- 11) hourly rate by attrition
+select attrition, avg(hourlyrate) from hr_employee
+group by attrition;
+ 
+-- 12) hourly rate by job involvement
+select JobInvolvement, avg(hourlyrate) from hr_employee
+group by JobInvolvement
+order by avg(hourlyrate) desc;
+
+-- 13) attirition by work-life balance
+SELECT 
+    WorkLifeBalance,
+    SUM(CASE WHEN attrition = 'Yes' THEN 1 ELSE 0 END) AS attrition_yes_count,
+    SUM(CASE WHEN attrition = 'No' THEN 1 ELSE 0 END) AS attrition_no_count,
+    COUNT(*) AS total_count,
+    (SUM(CASE WHEN attrition = 'Yes' THEN 1 ELSE 0 END) / COUNT(*)) * 100 AS attrition_percentage
+FROM 
+   hr_employee
+GROUP BY 
+    worklifebalance
+ORDER BY 
+    attrition_percentage DESC;
+-- 14) percentage of attrition by education field and education 
+SELECT    educationfield,    education,  COUNT(*) AS total_count,
+    SUM(CASE WHEN attrition = 'Yes' THEN 1 ELSE 0 END) AS attrition_count,
+    round((SUM(CASE WHEN attrition = 'Yes' THEN 1 ELSE 0 END) / COUNT(*)) * 100,2) AS attrition_percentage
+FROM    hr_employee
+GROUP BY    educationfield,   education
+ORDER BY    educationfield,   education;
+
+-- 15) percentage of attrition by environment satisfaction
+SELECT     environmentsatisfaction,    COUNT(*) AS total_count,
+    SUM(CASE WHEN attrition = 'Yes' THEN 1 ELSE 0 END) AS attrition_count,
+    ROUND((SUM(CASE WHEN attrition = 'Yes' THEN 1 ELSE 0 END) / COUNT(*)) * 100, 2) AS attrition_percentage
+FROM  hr_employee
+GROUP BY
+    environmentsatisfaction
+ORDER BY 
+    CASE
+        WHEN environmentsatisfaction = 'highly satisfied' THEN 1
+        WHEN environmentsatisfaction = 'satisfied' THEN 2
+        WHEN environmentsatisfaction = 'medium' THEN 3
+        WHEN environmentsatisfaction = 'low' THEN 4
+        ELSE 5  -- Handle any other values
+        end;
+-- 16) percentage of attrition by average yearswithcurmanager 
+SELECT    avg(YearsWithCurrManager),
+    COUNT(*) AS total_count,
+    SUM(CASE WHEN attrition = 'Yes' THEN 1 ELSE 0 END) AS attrition_count,
+    ROUND((SUM(CASE WHEN attrition = 'Yes' THEN 1 ELSE 0 END) / COUNT(*)) * 100, 2) AS attrition_percentage
+FROM
+    hr_employee
+GROUP BY
+    YearsWithCurrManager
+ORDER BY
+    attrition_percentage desc;
+
+-- 17) average Trainingtimeslastyear vs attrition
+SELECT    avg(TrainingTimesLastYear),
+    COUNT(*) AS total_count,
+    SUM(CASE WHEN attrition = 'Yes' THEN 1 ELSE 0 END) AS attrition_count,
+    ROUND((SUM(CASE WHEN attrition = 'Yes' THEN 1 ELSE 0 END) / COUNT(*)) * 100, 2) AS attrition_percentage
+FROM
+    hr_employee
+GROUP BY
+    TrainingTimesLastYear
+ORDER BY
+  attrition_percentage desc;
+-- 18) average yearssincelastpromotion vs attrition
+SELECT    attrition,     AVG(YearsSinceLastPromotion) AS avg_years_since_last_promotion
+FROM    hr_employee
+GROUP BY   attrition;
+
+-- 19) number of attiriton by age category
+SELECT
+    CASE
+        WHEN age BETWEEN 18 AND 24 THEN '18-24'
+        WHEN age BETWEEN 25 AND 34 THEN '25-34'
+        WHEN age BETWEEN 35 AND 44 THEN '35-44'
+        WHEN age BETWEEN 45 AND 54 THEN '45-54'
+        WHEN age BETWEEN 55 AND 64 THEN '55-64'
+        WHEN age >= 65 THEN '65+'
+        ELSE 'Unknown'  
+    END AS age_category,
+    COUNT(*) AS attrition_count
+FROM    hr_employee
+WHERE    attrition = 'Yes'
+GROUP BY    age_category
+ORDER BY    age_category;
+
+-- 20) avg numcompaniesworked by attrition
+SELECT    attrition, AVG(NumCompaniesWorked) AS avg_num_companies_worked
+FROM hr_employee
+GROUP BY    attrition;
+
+-- create trigger function
