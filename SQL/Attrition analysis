@@ -151,4 +151,162 @@ SELECT    attrition, AVG(NumCompaniesWorked) AS avg_num_companies_worked
 FROM hr_employee
 GROUP BY    attrition;
 
--- create trigger function
+-- Check for the employee with a Doctorate degree with age less than 40
+select count(*), attrition from hr_employee where Education = 'Doctor' and Age < 40
+group by Attrition; 
+
+-- What is the count of employees by gender?
+select gender, count(gender) as gender_count from hr_employee group by gender order by gender_count desc;
+
+-- How is the distribution of employee education across different departments?
+SELECT department, education, COUNT(*) as count_of_employees
+FROM hr_employee
+GROUP BY department, education 
+ORDER BY count_of_employees desc;
+
+-- What is the distribution of employee performance ratings across different departments?
+select PerformanceRating, Department, count(*) as count_of_employees from hr_employee 
+group by department, PerformanceRating 
+order by department, performancerating desc;
+
+--  What is the average monthly rate and income for each job role?
+select Jobrole, round(avg(MonthlyIncome),2), round(avg(MonthlyRate),2) from hr_employee group by jobrole order by avg(MonthlyIncome) desc;
+
+-- What is the average monthly rate and income for each job role in each department?
+select Jobrole, department, round(avg(MonthlyIncome),2), round(avg(MonthlyRate),2) 
+from hr_employee 
+group by department, jobrole 
+order by avg(MonthlyIncome) desc;
+-- What is the distribution of employee attrition across different age ranges?
+SELECT age_range, SUM(CASE WHEN attrition = 'Yes' THEN 1 ELSE 0 END) AS attrition_count
+FROM (
+	SELECT
+        CASE
+            WHEN age < 30 THEN 'Under 30'
+            WHEN age >= 30 AND age < 40 THEN '30-39'
+            WHEN age >= 40 AND age < 50 THEN '40-49'
+            ELSE '50 and over'
+        END AS age_range,
+        attrition
+    FROM hr_employee
+) AS age_attrition
+GROUP BY age_range
+ORDER BY age_range;
+-- Give Environment Satisfaction distribution to the employees.
+select environmentsatisfaction, count(*) as num_of_employee from hr_employee group by EnvironmentSatisfaction;
+
+-- Show the distribution of Job Satisfaction among the employees.
+SELECT JobSatisfaction,
+       num_of_employee,
+       CONCAT(Round(100 * (num_of_employee / (SELECT COUNT(*) FROM hr_employee)), 2), "%") AS Percentage
+FROM (SELECT JobSatisfaction,
+      COUNT(*) AS num_of_employee
+      FROM hr_employee
+      GROUP BY JobSatisfaction
+      ) AS job_satisfaction_count
+GROUP BY JobSatisfaction
+ORDER BY Percentage DESC;
+
+-- We calculate the JobSatisfaction and Count the number of employees.
+SELECT JobSatisfaction,
+       COUNT(*) AS num_of_employees
+FROM hr_employee
+GROUP BY JobSatisfaction
+
+-- Then, we use both columns and calculate the percentage of the employees 
+-- and use the previous one as an extraction table.
+SELECT WorkLifeBalance,
+       num_of_employees,
+       CONCAT(Round(100 * (num_of_employees / (SELECT COUNT(*) FROM hr_employee)), 2), "%") AS Percentage
+FROM (SELECT WorkLifeBalance,
+      COUNT(*) AS num_of_employees
+      FROM hr_employee
+      GROUP BY WorkLifeBalance
+      ) AS WorkLifeBalance_count
+GROUP BY WorkLifeBalance
+ORDER BY WorkLifeBalance IN ('Good','Very-Good');
+
+-- Show only the count & percentage of involved and highly-involved employees.
+SELECT JobInvolvement,
+       num_of_employees,
+       CONCAT(Round(100 * (num_of_employees / (SELECT COUNT(*) FROM hr_employee)), 2), "%") AS Percentage
+FROM (SELECT JobInvolvement,
+      COUNT(*) AS num_of_employees
+      FROM hr_employee
+      where JobInvolvement in( 'involved', 'Highly-involved')
+      GROUP BY JobInvolvement
+      ) AS JobInvolvement_count
+GROUP BY JobInvolvement
+ORDER BY JobInvolvement;
+-- Number of attrition is low at high level of income
+SELECT income_range, SUM(CASE WHEN attrition = 'Yes' THEN 1 ELSE 0 END) AS count_of_attrition
+from ( SELECT
+        CASE
+            WHEN monthlyincome < 5000 THEN 'Income < 5K' 
+			WHEN monthlyIncome >= 5000 and monthlyincome < 10000 then 'income:5K-10K'
+            ELSE 'income > 10K' END AS income_range,
+        attrition
+    FROM hr_employee)
+		as income_attrition
+	group by income_range
+    order by count_of_attrition;
+    
+select monthlyrate, EducationField, Education, EmployeeNumber
+attrition,
+ rank() over(order by monthlyrate desc) as monthlyrate_ranking
+from hr_employee;
+
+with education_ranking as(
+select monthlyrate, EducationField, Education, employeenumber, attrition,
+ rank() over(order by monthlyrate desc) as monthlyrate_ranking
+from hr_employee)
+select education, educationfield, employeenumber, attrition, monthlyrate
+from education_ranking
+where monthlyrate_ranking < 11
+order by monthlyrate_ranking;
+
+-- attrition count by education with avg years with current manager
+select avg(yearswithcurrmanager), education, COUNT(*) AS attrition_count from hr_employee 
+where attrition = 'Yes'
+group by education
+ORDER BY attrition_count desc;
+
+SELECT
+  Attrition,
+  avg(PercentSalaryHike)
+FROM hr_employee 
+WHERE PercentSalaryHike > ( SELECT AVG(PercentSalaryHike) FROM hr_employee)
+group by attrition;
+
+-- Number and percentage of attrition by marital status
+select MaritalStatus, count(*) as attritioncount , 
+round(count(*) * 100 / sum(count(*)) over(), 2 ) as attritionpercentage
+from hr_employee
+where Attrition = 'Yes'
+group by Attrition, MaritalStatus
+order by Attrition;
+
+-- 
+select businesstravel, count(attrition) from hr_employee
+where attrition = 'yes' 
+group by BusinessTravel, attrition, OverTime
+order by BusinessTravel desc;
+
+select distancefromhome, count(DistanceFromHome) from hr_employee
+group by DistanceFromHome;	
+
+
+select jobrole, count(*) from hr_employee
+group by jobrole;
+
+-- Sales Repr and Lab Tech has the highest attrition rate
+-- Research Director has the lowest attrition rate
+select jobrole, 
+		count(*) as total_count,
+		round((sum(case when attrition = 'yes' then 1 else 0 end) * 100.0) / count(*), 2) as aTtrition_percentage
+from hr_employee
+group by jobrole
+order by attrition_percentage desc;
+
+
+
