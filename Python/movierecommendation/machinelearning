@@ -1,0 +1,362 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import KFold
+from sklearn.metrics import make_scorer
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import KFold
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import make_scorer
+from sklearn.ensemble import GradientBoostingRegressor
+import numpy as np
+
+
+file_path = file path
+ratings = pd.read_csv(file_path)
+ratings.head(10)
+
+file_path = 
+movies = pd.read_csv(file_path)
+movies.head(10)
+
+#We can merge movies and ratings as they are in differen csv files.
+movielens = pd.merge(ratings, movies, on= 'movieId',how='left')
+print(movielens)
+print("Number of Rows:", len(movielens.columns))
+
+import random
+from sklearn.model_selection import train_test_split
+
+# Movielens is our dataFrame containing movies and ratings data
+
+# Set the seed for reproducibility
+random_seed = 1
+random.seed(random_seed)
+
+# Creating a validation set - 10% of the data
+train_data, validation_data = train_test_split(movielens, test_size=0.1, random_state=random_seed)
+# Display the first few rows of the training and validation sets
+print("Training Data:")
+print(train_data.head())
+
+print("\nValidation Data:")
+print(validation_data.head())
+
+# Perform semi-join on 'movieId'
+validation_data = validation_data.merge(train_data[['movieId']], on='movieId', how='inner')
+
+# Perform semi-join on 'userId'
+validation_data = validation_data.merge(train_data[['userId']], on='userId', how='inner')
+
+from sklearn.model_selection import train_test_split
+
+# Assuming 'movielens' is your DataFrame containing movies and ratings data
+
+# Set the seed for reproducibility
+random_seed = 1
+random.seed(random_seed)
+# Creating a validation set (10% of the data)
+train_data, validation_data = train_test_split(movielens, test_size=0.1, random_state=random_seed)
+# Perform semi-join on 'movieId'
+validation_data = validation_data.merge(train_data[['movieId']], on='movieId', how='inner')
+# Perform semi-join on 'userId'
+validation_data = validation_data.merge(train_data[['userId']], on='userId', how='inner')
+# Add rows removed from validation set back into training set
+removed = pd.concat([movielens, validation_data, train_data]).drop_duplicates(keep=False)
+train_data = pd.concat([train_data, removed])
+
+# Optionally, we might want to reset the index of the resulting DataFrames
+train_data.reset_index(drop=True, inplace=True)
+validation_data.reset_index(drop=True, inplace=True)
+
+#DATA AUDIT
+# Display the first few rows of the updated training set
+print("Updated Training Data:")
+print(train_data.head())
+# Display the first few rows of the validation set
+print("\nValidation Data:")
+print(validation_data.head())
+print("Validation Data:")
+print(validation_data.tail(20))
+
+# Structure of the DataFrame
+print("DataFrame structure:")
+print(validation_data.info())
+# Summary statistics
+print("Summary statistics:")
+print(validation_data.describe())
+# Data types of columns
+print(validation_data.dtypes)
+print(train_data.dtypes)
+# Missing data count in each column
+print("Missing data count in each column:")
+print(validation_data.isnull().sum())  # there is no missing value
+print("Missing data count in each column:")
+print(train_data.isnull().sum())  # there is no missing value
+# Minimum and maximum values in the 'userId' column
+print("Minimum value in userId column:", validation_data['rating'].min()) #0.5
+print("Maximum value in userId column:", validation_data['rating'].max()) #5
+# Display the first 10 rows of the 'timestamp' column
+print("First 10 rows of the 'timestamp' column:")
+print(validation_data['timestamp'].head(10)) # we need to convert the time format
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+#We keep exploring dataset creating visualizations
+# Train_data > 'rating' is the column containing numerical ratings
+Rating = train_data.groupby('rating').size().reset_index(name='n')
+# Sort the DataFrame by frequency 'n' in descending order
+Rating = Rating.sort_values(by='n', ascending=False)
+# Plotting the bar graph
+plt.figure(figsize=(10, 6))
+bar_plot = sns.barplot(x='rating', y='n', data=Rating, palette="dark:red", order=Rating['rating'])
+bar_plot.set(xlabel="Rating", ylabel="Frequency Rating", title="Number Rating")
+for index, (rating, count) in enumerate(zip(Rating['rating'], Rating['n'])):
+    bar_plot.text(index, count, str(count), color='black', ha="center", va="bottom", fontsize=10)
+plt.show()
+
+#Validation data > 'rating' is the column containing numerical ratings
+Rating = validation_data.groupby('rating').size().reset_index(name='n')
+#Sort the DataFrame by frequency 'n' in descending order
+Rating = Rating.sort_values(by='n', ascending=False)
+# Plotting the bar graph
+plt.figure(figsize=(10, 6))
+bar_plot = sns.barplot(x='rating', y='n', data=Rating, palette="dark:red", order=Rating['rating'])
+bar_plot.set(xlabel="Rating", ylabel="Frequency Rating", title="Number Rating")
+for index, (rating, count) in enumerate(zip(Rating['rating'], Rating['n'])):
+    bar_plot.text(index, count, str(count), color='black', ha="center", va="bottom", fontsize=10)
+plt.show()
+
+#Validation data > Showing outliers
+sns.set(style="whitegrid")
+plt.figure(figsize=(10, 6))
+# Create a vertical boxplot
+ax = sns.boxplot(y='rating', data=validation_data)
+# Add labels and title
+plt.title('Boxplot of Ratings with Outliers')
+plt.ylabel('Rating')
+# Add numbers for outliers
+outliers = validation_data[validation_data['rating'] > validation_data['rating'].quantile(0.75) + 1.5 * (validation_data['rating'].quantile(0.75) - validation_data['rating'].quantile(0.25))]
+for i, val in enumerate(outliers['rating']):
+    ax.text(i, val, f'{val:.2f}', ha='center', va='bottom', color='red', fontsize=8)
+plt.show() #there is no significant amount of outliers. We don't need to change anything
+missing_data_counts = validation_data.isna().sum()
+print(missing_data_counts) #there is no missing values
+
+
+#There is no missing values for train_data and validation data
+missing_traind_data_counts = train_data.isna().sum()
+print(missing_traind_data_counts) 
+#there is no missing values for validation_data
+missing_data_counts = validation_data.isna().sum()
+print(missing_data_counts) 
+
+#DATA CLEANING FOR VALIDATION DATASET
+# We need to convert timestamp
+import pandas as pd
+import datetime
+# Train Data > Convert timestamp
+train_data['timestamp_2'] = pd.to_datetime(train_data['timestamp'], unit='s')
+# Extract components
+train_data['Year'] = train_data['timestamp_2'].dt.year
+train_data['Month'] = train_data['timestamp_2'].dt.month
+train_data['Day'] = train_data['timestamp_2'].dt.day
+train_data['Weekday'] = train_data['timestamp_2'].dt.weekday
+train_data['Hour'] = train_data['timestamp_2'].dt.hour
+print(train_data)
+
+# Validation Data > Convert timestamp
+validation_data['timestamp_2'] = pd.to_datetime(validation_data['timestamp'], unit='s')
+# Extract components
+validation_data['Year'] = validation_data['timestamp_2'].dt.year
+validation_data['Month'] = validation_data['timestamp_2'].dt.month
+validation_data['Day'] = validation_data['timestamp_2'].dt.day
+validation_data['Weekday'] = validation_data['timestamp_2'].dt.weekday
+validation_data['Hour'] = validation_data['timestamp_2'].dt.hour
+print(validation_data)
+
+
+# Split genres into different columns - creating binary columns
+gen_df_train = train_data['genres'].str.get_dummies('|')
+gen_df_validation = validation_data['genres'].str.get_dummies('|')
+# Combine the binary genre columns with the original DataFrames
+train_data = pd.concat([train_data, gen_df_train], axis=1)
+validation_data = pd.concat([validation_data, gen_df_validation], axis=1)
+# Display the first few rows to check the changes
+print(train_data.head())
+print(validation_data.head())
+
+#SAVE DATAFRAMES
+import pickle
+with open('DataFrames.pkl', 'wb') as file:
+    pickle.dump(train_data, file)
+    pickle.dump(validation_data, file)
+# LOAD DATAFRAMES
+import pickle
+with open('DataFrames.pkl', 'rb') as file:
+    train_data = pickle.load(file)
+    validation_data = pickle.load(file)
+print(train_data)
+print(validation_data)
+#DATA EXPLORATION
+import seaborn as sns
+import matplotlib.pyplot as plt
+# 1. Bar chart - x axis is userId & y axis is count of ratings or observations
+user_ratings_count = train_data.groupby('userId').size().reset_index(name='n')
+plt.figure(figsize=(10, 6))
+hist_plot = sns.histplot(user_ratings_count['n'], color="darkred", bins=30, log_scale=True)
+hist_plot.set(xlabel="Number of Ratings", ylabel="Number of Users", title="Count of Ratings per Users")
+plt.show()
+
+#2. plot - x axis id Year & y axis is avg ratings
+train_data2 = train_data.copy()  # Create a copy to avoid modifying the original DataFrame
+# Extract the 'Year' from the timestamp (assuming 'timestamp' is in Unix format)
+train_data2['Year'] = pd.to_datetime(train_data2['timestamp'], unit='s').dt.year
+year_rating = train_data2.groupby('Year').size().reset_index(name='n')
+plt.figure(figsize=(12, 6))
+year_rating = sns.barplot(x='Year', y='n', data=year_rating, color="darkred",
+                 order=year_rating.sort_values('n', ascending=False).Year)
+year_rating.set(xlabel='Year', ylabel="Frequency Rating")
+plt.title("Average Rating per Year")
+plt.xticks(rotation=45, ha="right")
+for index, value in enumerate(year_rating['n']):
+    year_rating.text(index, value + 20, f"{value}", ha='center', va='top', fontsize=8)
+plt.show()
+
+#3.   15 the most popular movies in our dataset
+movie_counts = validation_data.groupby('title')['userId'].count().reset_index()
+movie_counts.columns = ['title', 'count']
+top_movies = movie_counts.sort_values(by='count', ascending=False).head(15)
+plt.figure(figsize=(12, 6))
+sns.barplot(x='count', y='title', data=top_movies, palette='viridis')
+plt.title('Top 15 Most Popular Movies')
+plt.xlabel('Number of Ratings')
+plt.ylabel('Movie Title')
+plt.show()
+
+#4. List of top 10 & bottom 10 movies basis avg ratings. Consider movies with atleast 100 ratings.
+# Calculate the count of ratings per movie
+movie_ratings_count = train_data['movieId'].value_counts()
+popular_movies = movie_ratings_count[movie_ratings_count > 100].index
+# Subset the original DataFrame to get details of popular movies
+result_df = train_data[train_data['movieId'].isin(popular_movies)]
+# Display the list of movies with more than 100 ratings
+print("Movies with more than 100 ratings:")
+print(result_df['movieId'].unique())
+movie_ratings_summary = train_data.groupby('movieId')['rating'].agg(['count', 'mean']).reset_index()
+# Filter movies with more than 100 ratings
+popular_movies = movie_ratings_summary[movie_ratings_summary['count'] > 100]
+# Sort the popular movies by average rating
+top_movies = popular_movies.sort_values(by='mean', ascending=False).head(100)
+# Display the top 10 movies
+print("Top 10 Movies:")
+print(top_movies.head(10))
+# Display the bottom 10 movies
+print("\nBottom 10 Movies:")
+print(top_movies.tail(10))
+
+# 5 Scatter plot - x axis is avg rating & y axis is count of ratings & each dot represents a movie
+movie_ratings_summary = train_data.groupby('movieId')['rating'].agg(['mean', 'count']).reset_index()
+# Filter movies with more than 100 ratings
+popular_movies = movie_ratings_summary[movie_ratings_summary['count'] > 10]
+# Scatter plot
+plt.figure(figsize=(10, 6))
+scatter_plot = sns.scatterplot(x='mean', y='count', data=popular_movies, color='darkred')
+scatter_plot.set(xlabel='Average Rating', ylabel='Number of Ratings per Movie')
+plt.title('Scatter Plot: Average Rating vs Number of Ratings per Movie')
+plt.show()
+
+###MODEL BUILDING
+validation_data_model = validation_data.iloc[:,0:3] 
+print(validation_data2)
+train_data_model = train_data.iloc[:, 0:3]
+print(train_data_model)
+
+import numpy as np
+from sklearn.metrics import mean_squared_error
+import pandas as pd
+#MODEL 1: Random ratings for predictions
+# Set the seed for reproducibility
+np.random.seed(123) 
+# Create a column 'pred' with random ratings in the range [0.5, 5] with step 0.5
+validation_data_model['pred'] = np.random.choice(np.arange(0.5, 5.5, 0.5), 
+                                                 size=len(validation_data_model), replace=True, p=np.repeat(0.1, 10))
+# Calculate RMSE
+rmse = np.sqrt(mean_squared_error(validation_data_model['rating'], 
+                                  validation_data_model['pred']))
+# Create a DataFrame to store the results
+RMSE_Result = pd.DataFrame({'ModelType': ['Random Predictions'], 'RMSE': [rmse], 'Notes': [np.nan]})
+print(RMSE_Result) #Random Predictions  2.012276
+
+### MODEL 2: Random percentage prediction 
+np.random.seed(123)
+no_obs = train_data_model['rating'].value_counts().reset_index()
+no_obs.columns = ['rating', 'count']
+no_obs['percentage'] = no_obs['count'] / no_obs['count'].sum()
+validation_data_model['pred2'] = np.random.choice(no_obs['rating'], size=len(validation_data_model), p=no_obs['percentage'])
+rmse2 = np.sqrt(np.mean((validation_data_model['rating'] - validation_data_model['pred2'])**2))
+# Update RMSE_Result DataFrame
+rmse_result = pd.DataFrame({'ModelType': ["Random percentage prediction"], 'RMSE': [rmse2], 'Notes': [None]})
+RMSE_Result = pd.concat([RMSE_Result, rmse_result], ignore_index=True)
+print(RMSE_Result) #Random percentage prediction  1.460371
+
+###MODEL 3: Average Rating prediction
+avg_rating = train_data_model['rating'].mean()
+validation_data_model['pred3'] = avg_rating
+rmse3 = np.sqrt(np.mean((validation_data_model['rating'] - validation_data_model['pred3'])**2))
+# Update RMSE_Result DataFrame
+rmse_result = pd.DataFrame({'ModelType': ["Average prediction"], 'RMSE': [rmse3], 'Notes': [None]})
+RMSE_Result = pd.concat([RMSE_Result, rmse_result], ignore_index=True)
+print(RMSE_Result)  # Average prediction  1.021346
+
+# MODEL 4: Linear model with Movie Effect
+train_data_model['Error'] = train_data_model['rating'] - avg_rating
+movie_effect = train_data_model.groupby('movieId')['Error'].mean().reset_index()
+movie_effect.columns = ['movieId', 'Movie.Effect']
+validation_data_model = validation_data_model.merge(movie_effect, on='movieId', how='left')
+validation_data_model['pred4'] = avg_rating + validation_data_model['Movie.Effect']
+rmse4 = np.sqrt(np.mean((validation_data_model['rating'] - validation_data_model['pred4'])**2))
+# Update RMSE_Result DataFrame
+rmse_result = pd.DataFrame({'ModelType': ["Linear model with Movie Effect"], 'RMSE': [rmse4], 'Notes': [None]})
+RMSE_Result = pd.concat([RMSE_Result, rmse_result], ignore_index=True)
+print(RMSE_Result)   #Linear model with Movie Effect  0.913146 
+
+
+# MODEL 5:Linear Model with Movie & User Effect
+train_data_model = pd.merge(train_data_model, movie_effect, on='movieId', how='left')
+train_data_model['pred5'] = avg_rating + train_data_model['Movie.Effect']
+train_data_model['Error5'] = train_data_model['rating'] - train_data_model['pred5']
+user_effect = train_data_model.groupby('userId')['Error5'].mean().reset_index()
+user_effect.columns = ['userId', 'User.Effect']
+validation_data_model = pd.merge(validation_data_model, user_effect, on='userId', how='left')
+validation_data_model['Pred5'] = avg_rating + validation_data_model['Movie.Effect'] + validation_data_model['User.Effect']
+rmse5 = np.sqrt(np.mean((validation_data_model['rating'] - validation_data_model['Pred5'])**2))
+# Update RMSE_Result DataFrame
+rmse_result = pd.DataFrame({'ModelType': ["Linear Model with Movie & User Effect"], 'RMSE': [rmse5], 'Notes': [None]})
+RMSE_Result = pd.concat([RMSE_Result, rmse_result], ignore_index=True)
+print(RMSE_Result) # Linear Model with Movie & User Effect  0.840863
+
+
+### FINAL VALIDATION
+
+# We will use Linear Model with Movie & User Effect
+#Load the model
+joblib.dump(validation_data_model['Pred5'], 'final_model.pkl')
+# Save the model to a file
+final_model = joblib.load('final_model.pkl')
+# Generate Movie Recommendations:
+#We are using final model to generate movie recommendations for a specific user or a list of users.
+user_id = 300
+user_data = validation_data_model[validation_data_model['userId'] == user_id]
+# Select the relevant columns for making recommendations
+user_recommendations = user_data[['movieId', 'Pred5']]
+# Display the top N movie recommendations for the user
+top_recommendations = user_recommendations.sort_values(by='Pred5', ascending=False).head(10)
+print(top_recommendations)
+
