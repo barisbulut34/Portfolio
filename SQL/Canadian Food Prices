@@ -1,0 +1,181 @@
+select * from canadian_food_prices;
+alter table canadian_food_prices
+RENAME column `value` to price;
+
+SET SQL_SAFE_UPDATES = 0;
+ALTER TABLE canadian_food_prices
+ADD COLUMN ref_year_month VARCHAR(7);
+
+UPDATE canadian_food_prices
+SET ref_year_month = DATE_FORMAT(REF_DATE, '%Y-%m');
+#examine the data structure
+describe canadian_food_prices;
+#check the missin values > there is no missing values
+SELECT
+    SUM(IF(REF_DATE IS NULL, 1, 0)) AS null_ref_date,
+    SUM(IF(GEO IS NULL, 1, 0)) AS null_geo,
+    SUM(IF(DGUID IS NULL, 1, 0)) AS null_dguid,
+    SUM(IF(Products IS NULL, 1, 0)) AS null_products,
+    SUM(IF(VECTOR IS NULL, 1, 0)) AS null_vector,
+    SUM(IF(COORDINATE IS NULL, 1, 0)) AS null_coordinate,
+    SUM(IF(price IS NULL, 1, 0)) AS null_value
+FROM
+    canadian_food_prices;	
+#Data distribution
+select 
+	round( avg(price),2) as avg_price,
+	min(price) as min_price,
+    max(price) as max_price
+from canadian_food_prices;
+
+#Average prices increased from 4.54 to 6.12 from 01/2017 to 11/2023(in 7 years) 
+SELECT   REF_DATE, geo, round( AVG(price),2) AS avg_price
+FROM
+    canadian_food_prices
+where Geo = "Canada"
+GROUP BY
+    REF_DATE
+ORDER BY
+    REF_DATE;
+    
+    select avg(price) from canadian_food_prices;
+#BC has the highest average price and Ontario has the lowest average price in the 7 year period. 
+#the highest grocery product was sold in new foundland and labrador with 44.61 CAD
+SELECT  GEO, AVG(price) AS avg_price, MIN(price) AS min_price, MAX(price) AS max_price
+FROM
+    canadian_food_prices
+GROUP BY
+    GEO
+ORDER BY
+    avg_price DESC;
+
+#ref_date is in text format, convert to date format
+select * from canadian_food_prices;
+
+ALTER TABLE canadian_food_prices
+MODIFY COLUMN REF_DATE TEXT;
+
+describe canadian_food_prices;
+select * from canadian_food_prices;
+
+select distinct ref_year_month from canadian_food_prices;
+#Let's Calculate summary statistics for key variables such as food prices
+select 
+avg(price) , min(price), max(price)	
+from canadian_food_prices;
+#Let's calculate the food prices over time
+select round(avg(price),2), ref_year_month
+from canadian_food_prices
+group by ref_year_month
+order by ref_year_month;
+
+#average price by products
+select products, avg(price) from canadian_food_prices
+group by products order by avg(price) desc;
+#infant formula has the highest average pricess all across Canada
+select products, avg(price), geo from canadian_food_prices
+group by products, geo
+order by avg(price) desc;
+#let's look at the average prices by year
+SELECT 
+    AVG(price) AS avg_price,
+    SUBSTRING(ref_year_month, 1, 4) AS year
+FROM canadian_food_prices
+GROUP BY SUBSTRING(ref_year_month, 1, 4);
+
+#let's look at the price changes of infant formula by year 
+#there is a big strike in 2023 in the price of infant formula. though previous years have steady increase
+select SUBSTRING(ref_year_month, 1, 4) as year, avg(price), MAX(products)  from canadian_food_prices
+where Products like '%infant formula%'
+group by SUBSTRING(ref_year_month, 1, 4)
+order by year;
+#Seasonality Analysis:Average Price Per Month(June and July have the highest average prices where Jan and Feb have the lowest average prices
+SELECT 
+    SUBSTRING(ref_year_month, 6, 2) AS month,
+    AVG(price) AS avg_price
+FROM canadian_food_prices
+GROUP BY SUBSTRING(ref_year_month, 6, 2)
+order by avg_price desc;
+--  Time Series Decomposition: Additive decomposition 
+SELECT 
+    ref_year_month,    price,
+    AVG(price) OVER (ORDER BY ref_year_month ROWS BETWEEN 12 PRECEDING AND 12 FOLLOWING) AS trend,
+    price - AVG(price) OVER (ORDER BY ref_year_month ROWS BETWEEN 12 PRECEDING AND 12 FOLLOWING) AS residual
+FROM canadian_food_prices;
+
+-- Trend Analysis: Calculate trend using moving average
+SELECT year, month, avg(trend) from (select 
+		substring(ref_year_month, 1,4 ) as year, substring(ref_year_month, 6, 2) as month,  
+        AVG(price) OVER (PARTITION BY substring(ref_year_month, 1,4 ), SUBSTRING(ref_year_month, 6, 2) ORDER BY ref_year_month ROWS BETWEEN 12 PRECEDING AND 12 FOLLOWING) AS trend
+from canadian_food_prices) as subqueries
+group by year,month
+order by year, month ;
+
+-- Residual Analysis:Calculate residual by subtracting trend from actual price, let's visualize this in power bi
+select year, month, avg(price) - avg(residual) as residual from ( select 
+substring(ref_year_month, 1, 4 ) as year , substring(ref_year_month, 6,2) as month,
+avg(price) over (partition by substring(ref_year_month, 1, 4), substring(ref_year_month, 6,2) rows between 12 preceding and 12 following) as residual , price
+from canadian_food_prices) as subqueries
+group by year, month
+order by year, month;
+#BC has the highest average prices
+select geo, avg(price)as avg_price from canadian_food_prices
+group by geo order by avg_price desc; 
+
+#let's look at the BC in detail by month and year Infatn formula has the most expensive price. Salmon is the second. The most expensive products are most likely chicken and beef.
+SELECT geo, products, AVG(price) AS avg_price 
+FROM canadian_food_prices 
+WHERE geo LIKE '%British Columbia%' 
+GROUP BY geo, products 
+ORDER BY avg_price desc;
+#the most expensive products are similar in Ontario
+select geo, products, avg(price) as avg_price 
+from canadian_food_prices
+where geo like '%ontario%'
+group by geo, products
+order by avg_price desc;
+select geo, products, avg(price) as avg_price 
+from canadian_food_prices
+where geo like '%canada%'
+group by geo, products
+order by avg_price desc;
+
+#top 10 highest average prices by month
+select substring(ref_year_month, 1, 4) as year, substring(ref_year_month,6,2) as month, avg(price) as average
+from canadian_food_prices
+group by year, month
+order by avg(price) desc
+limit 10;
+#The average price of frozen products are higher in the Atlantic provinces
+select avg(price), geo from canadian_food_prices
+where products like '%frozen%'
+group by  geo  order by avg(price)desc;
+#frozen strawberries has the highest average prices in frozen product category where spinach has the lowest. 
+select products, geo, avg(avg_price) as avg_price  from (
+select products, avg(price) over (partition by geo order by price) as avg_price, geo from canadian_food_prices) as subquery
+where products like '%frozen%' group by products, geo order by avg_price desc;
+#The average price of canned products are higher in the Atlantic provinces.
+select avg(price), geo,products from canadian_food_prices
+where products like '%canned%'
+group by  geo,products  order by avg(price)desc;
+#Canned salmon has the highest average prices in canned food category. Canned fruits are following salmon. 
+#canned soup, beans and corn are some of the cheapest options in this category.
+select products, geo, avg(avg_price) as avg_price  from (
+select products, avg(price) over (partition by geo order by price) as avg_price, geo from canadian_food_prices) as subquery
+where products like '%canned%' group by products, geo order by avg_price desc;
+#let's look at the beef. Quebec has the highest avg price in this category. Atlantic Canada is performing well in this category.  
+#Ontario has a price similar to the whole country. 
+select avg(price), geo,products from canadian_food_prices
+where products like '%beef%'
+group by  geo, products  order by avg(price)desc;
+
+#BC and Ontario have the highest average salmon prices. 
+#Interestingly, Saskatchewan has the lowest salmon prices in the middle of Canada. 
+select avg(price), geo, products from canadian_food_prices
+where products like 'salmon%'
+group by  geo, products  order by avg(price)desc;
+#Let's look at the canned_salmon prices in Saskatchewan. Most populated areas have the highest salmon and canned_salmonprices.
+select avg(price), geo, products from canadian_food_prices
+where products like 'canned_salmon%' 
+group by  geo, products  order by avg(price)desc;
+
